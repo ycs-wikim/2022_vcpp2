@@ -1,23 +1,8 @@
-﻿// 09_15.cpp : 애플리케이션에 대한 진입점을 정의합니다.
+﻿// 09_22.cpp : 애플리케이션에 대한 진입점을 정의합니다.
 //
 
 #include "framework.h"
-#include "09_15.h"
-
-// STL 벡터를 사용할 수 있다!
-using namespace std;
-#include <vector>
-
-// 동적으로 생성하여 보관할 마우스의 좌표 정보
-typedef struct MouseInformations
-{
-    int x;
-    int y;
-} MI, *PMI;
-
-// 마우스의 좌표 정보를 보관할 컨테이너
-vector<PMI> g_ptr;
-
+#include "09_22.h"
 
 #define MAX_LOADSTRING 100
 
@@ -44,7 +29,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     // 전역 문자열을 초기화합니다.
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-    LoadStringW(hInstance, IDC_MY0915, szWindowClass, MAX_LOADSTRING);
+    LoadStringW(hInstance, IDC_MY0922, szWindowClass, MAX_LOADSTRING);
     MyRegisterClass(hInstance);
 
     // 애플리케이션 초기화를 수행합니다:
@@ -53,7 +38,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         return FALSE;
     }
 
-    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_MY0915));
+    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_MY0922));
 
     MSG msg;
 
@@ -88,10 +73,10 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.cbClsExtra     = 0;
     wcex.cbWndExtra     = 0;
     wcex.hInstance      = hInstance;
-    wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_MY0915));
+    wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_MY0922));
     wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW+1);
-    wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_MY0915);
+    wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_MY0922);
     wcex.lpszClassName  = szWindowClass;
     wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
@@ -111,6 +96,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // 인스턴스 핸들을 전역 변수에 저장합니다.
+
    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
       CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
 
@@ -136,152 +122,134 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 //
 
-int g_x, g_y;
-
-bool g_press;       // 전역변수이므로, 자동으로 0으로 초기화
-
-RECT g_rect;
+// 내 캐릭터
+RECT g_me;
+// 상대 캐릭터
+RECT g_you;
+//타이머 설정값
+int g_timer;
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    int x = 345, y = 543;
-
     switch (message)
     {
     case WM_COMMAND:
+    {
+        int wmId = LOWORD(wParam);
+        // 메뉴 선택을 구문 분석합니다:
+        switch (wmId)
         {
-            int wmId = LOWORD(wParam);
-            // 메뉴 선택을 구문 분석합니다:
-            switch (wmId)
-            {
-            case IDM_ABOUT:
-                DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-                break;
-            case IDM_EXIT:
-                DestroyWindow(hWnd);
-                break;
-            default:
-                return DefWindowProc(hWnd, message, wParam, lParam);
-            }
-        }
-        break;
-
-    // 마우스 오른쪽 버튼을 눌렀을 때 화면을 무효화
-    case WM_RBUTTONDOWN:
-    {
-        RECT rect;
-        // 프로그래머가 무효화 호출
-        //InvalidateRect(hWnd, NULL, true);
-        rect.left = 10;
-        rect.top = 10;
-        rect.right = 1200;
-        rect.bottom = 1200;
-
-        InvalidateRect(hWnd, &rect, false);
-    }
-        break;
-
-    case WM_LBUTTONDOWN:
-    {
-        // 동적으로 메모리를 생성 for 마우스 정보 저장
-        PMI ptr = new MI;
-
-        g_press = true;
-        g_x = LOWORD(lParam);
-        g_y = HIWORD(lParam);
-        // 구조체에 정보를 저장
-        ptr->x = g_x;
-        ptr->y = g_y;
-        // 컨테이너에 값을 보관
-        g_ptr.push_back(ptr);
-    }
-        break;
-
-    case WM_LBUTTONUP:
-    {
-        g_press = false;
-    }
-        break;
-
-
-    // 마우스를 이동할 때 발생하는 메세지
-    case WM_MOUSEMOVE:
-        //break;
-
-    // 마우스 왼쪽 버튼을 뗐을 때 발생하는 메세지
-    //case WM_LBUTTONUP:
-        //break;
-
-    // 마우스 왼쪽 버튼을 눌렀을 때 발생하는 메세지
-    //case WM_LBUTTONDOWN:
-    {
-        if (false == g_press)
+        case IDM_ABOUT:
+            DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
             break;
-
-        // 마우스 정보 보관 동적 메모리 할당
-        PMI pmi = new MI;
-
-        HDC hdc;
-        x = LOWORD(lParam);
-        y = HIWORD(lParam);
-
-        // 획득한 마우스 위치 좌표를 저장
-        pmi->x = x;
-        pmi->y = y;
-        // 컨테이너에 보관
-        g_ptr.push_back(pmi);
-        
-        g_rect.right = x;
-        g_rect.bottom = y;
-
-        hdc = GetDC(hWnd);
-
-        
-        // 사각형
-        //Rectangle(hdc, 10, 10, x, y);
-
-        // 타원
-        //Ellipse(hdc, 10, 10, x, y);
-
-        // 선
-        MoveToEx(hdc, g_x, g_y, NULL);
-        LineTo(hdc, x, y);
-
-        //MoveToEx(hdc, x, 10, NULL);
-        //LineTo(hdc, 10, y);
-
-        g_x = x;
-        g_y = y;
-        
-
-        ReleaseDC(hWnd, hdc);
+        case IDM_EXIT:
+            DestroyWindow(hWnd);
+            break;
+        default:
+            return DefWindowProc(hWnd, message, wParam, lParam);
+        }
     }
-        break;
+    break;
 
-    // * 화면 무효화가 발생하는 경우 ==> WM_PAINT가 OS에 의해 호출된다.
-    // 1. 화면 밖으로 이동하는 경우
-    // 2. 창 크기를 조절
-    // 3. 최소화
-    // 4. 최대화
-    // 5. 프로그램 실행 시점에 반드시 전체 무효화
-    // 6. 프로그래머가 임의/강제로 화면을 무효화
+    /// 키를 입력하면 전달되는 메시지
+/*    case WM_KEYDOWN:
+    {
+        MessageBox(hWnd, L"키가 눌렸어요", L"54rtg", MB_OK);
+    }
+
+    break;
+*/
+    case WM_KEYDOWN:
+    {
+        switch (wParam)
+        {
+        case VK_LEFT:
+            g_me.left -= 10;
+            g_me.right -= 10;
+            break;
+        case VK_RIGHT:
+            g_me.left += 10;
+            g_me.right += 10;
+            break;
+        case VK_UP:
+            g_me.top -= 10;
+            g_me.bottom -= 10;
+            break;
+        case VK_DOWN:
+            g_me.top += 10;
+            g_me.bottom += 10;
+            break;
+        }
+        InvalidateRect(hWnd, NULL, true);
+    }
+    break;
+
+    case WM_TIMER:
+    {
+        RECT is;
+
+        if (g_timer >= 200)
+            g_timer -= 100;
+        KillTimer(hWnd, 1);
+        SetTimer(hWnd, 1, g_timer, NULL);
+
+        if (g_me.left < g_you.left)
+        {
+            g_you.left -= 10;
+            g_you.right -= 10;
+        }
+        else
+        {
+            g_you.left += 10;
+            g_you.right += 10;
+        }
+        if (g_me.top < g_you.top)
+        {
+            g_you.top -= 10;
+            g_you.bottom -= 10;
+        }
+        else
+        {
+            g_you.top += 10;
+            g_you.bottom += 10;
+        }
+        if (true==IntersectRect(&is, &g_me, &g_you))
+        {
+            KillTimer(hWnd, 1);
+            MessageBox(hWnd, L"잡혔습니다.", L"KIM윤재",MB_OK);
+        }
+
+        InvalidateRect(hWnd, NULL, true);
+    }
+    break;
+    case WM_CREATE:
+    {
+        g_timer = 1000;
+        SetTimer(hWnd, 1, g_timer, NULL);
+
+        g_me.left = 10;
+        g_me.top = 10;
+        g_me.right = 110;
+        g_me.bottom = 110;
+
+        g_you.left = 300;
+        g_you.top = 300;
+        g_you.right = 400;
+        g_you.bottom = 400;
+    }
+    break;
 
     case WM_PAINT:
         {
-        int i = 0;
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
             // TODO: 여기에 hdc를 사용하는 그리기 코드를 추가합니다...
 
-            if (0 != g_ptr.size())
-            {
-                // 저장된 좌표 값들을 이용하여 선을 그려준다.
-                for (i = 0; i < g_ptr.size() - 1; i++)
-                {
-                    MoveToEx(hdc, g_ptr[i]->x, g_ptr[i]->y, NULL);
-                    LineTo(hdc, g_ptr[i + 1]->x, g_ptr[i + 1]->y);
-                }
-            }
+            // 내 캐릭터
+            Rectangle(hdc, g_me.left, g_me.top, g_me.right, g_me.bottom);
+            
+            // 상대 캐릭터
+            Rectangle(hdc, g_you.left, g_you.top, g_you.right, g_you.bottom);
 
             EndPaint(hWnd, &ps);
         }
